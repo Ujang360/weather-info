@@ -1,14 +1,14 @@
 use crate::TIMEOUT_GET;
+use dirs::home_dir;
 use reqwest::blocking::{Client, Request};
 use reqwest::Method;
 use serde_json::{from_str as json_from_str, Value as JsonValue};
 use std::fmt::{Display, Formatter, Result as FormatterResult};
 use std::fs::File;
 use std::io::{stdin, Read, Write};
-use std::path::Path;
 use std::time::Duration;
 
-const PATH_API_KEY: &str = "./openweathermap.apikey";
+const PATH_API_KEY: &str = "openweathermap.apikey";
 
 pub struct WeatherInfo {
     pub city: String,
@@ -62,11 +62,14 @@ Wind Direction : {} degree",
 }
 
 fn get_api_key() -> Option<String> {
-    if !Path::new(PATH_API_KEY).exists() && !prompt_save_api_key() {
+    let mut path_api_key = home_dir().unwrap();
+    path_api_key.push(PATH_API_KEY);
+
+    if !path_api_key.exists() && !prompt_save_api_key() {
         return None;
     }
 
-    let file_open_result = File::open(PATH_API_KEY);
+    let file_open_result = File::open(path_api_key);
 
     if file_open_result.is_err() {
         return None;
@@ -81,12 +84,14 @@ fn get_api_key() -> Option<String> {
 }
 
 fn prompt_save_api_key() -> bool {
-    println!("Please input your OpenWeatherMap API-Key:");
+    println!("Please input your OpenWeatherMap API-Key (get it from \"https://home.openweathermap.org/api_keys\"):");
     let mut user_input = String::new();
     match stdin().read_line(&mut user_input) {
         Err(_) => false,
         Ok(_) => {
-            let mut file_create_result = File::create(PATH_API_KEY).unwrap();
+            let mut path_api_key = home_dir().unwrap();
+            path_api_key.push(PATH_API_KEY);
+            let mut file_create_result = File::create(path_api_key).unwrap();
             file_create_result.write(user_input.as_bytes()).unwrap();
             true
         }
@@ -105,7 +110,6 @@ pub fn get_current_weather(city: &str) -> Option<WeatherInfo> {
         city,
         api_key.unwrap()
     );
-
     let mut request = Request::new(
         Method::GET,
         current_weather_uri
@@ -116,14 +120,8 @@ pub fn get_current_weather(city: &str) -> Option<WeatherInfo> {
         .timeout_mut()
         .replace(Duration::from_secs(TIMEOUT_GET));
     let client = Client::new();
-
-    let response = client.execute(request);
-
-    if response.is_err() {
-        return None;
-    }
-
-    let response_json: JsonValue = json_from_str(&response.unwrap().text().unwrap()).unwrap();
+    let response = client.execute(request).unwrap();
+    let response_json: JsonValue = json_from_str(&response.text().unwrap()).unwrap();
     let response_map = response_json.as_object().unwrap().to_owned();
     let mut result = WeatherInfo::default();
     result.city = response_map["name"].as_str().unwrap().to_owned();
