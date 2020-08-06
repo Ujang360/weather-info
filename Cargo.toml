@@ -3,6 +3,11 @@ name = "weather-info"
 version = "0.1.0"
 authors = ["Aditya Kresna <aditya.kresna@outlook.co.id>"]
 edition = "2018"
+license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/Ujang360/weather-info"
+repository = "https://github.com/Ujang360/weather-info"
+description = """An OpenWeather terminal utility to get current location's weather condition. This is pretty much a hobby project."""
 
 [dependencies]
 dirs = "3.0.1"
